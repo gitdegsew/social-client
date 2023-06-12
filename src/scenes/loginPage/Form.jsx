@@ -16,6 +16,7 @@ import { useDispatch } from "react-redux";
 import { setLogin } from "state";
 import Dropzone from "react-dropzone";
 import FlexBetween from "components/FlexBetween";
+import ClipLoader from "react-spinners/ClipLoader";
 
 const registerSchema = yup.object().shape({
   firstName: yup.string().required("required"),
@@ -49,6 +50,7 @@ const initialValuesLogin = {
 
 const Form = () => {
   const [pageType, setPageType] = useState("login");
+  const [loading, setLoading] = useState(false)
   const { palette } = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -64,38 +66,55 @@ const Form = () => {
     }
     formData.append("picturePath", values.picture.name);
 
-    const savedUserResponse = await fetch(
-      `${apiUrl}/auth/register`,
-      {
-        method: "POST",
-        body: formData,
+    try {
+      setLoading(true)
+      const savedUserResponse = await fetch(
+        `${apiUrl}/auth/register`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+      const savedUser = await savedUserResponse.json();
+      onSubmitProps.resetForm();
+  
+      if (savedUser) {
+        setLoading(false)
+        setPageType("login");
       }
-    );
-    const savedUser = await savedUserResponse.json();
-    onSubmitProps.resetForm();
-
-    if (savedUser) {
-      setPageType("login");
+    } catch (error) {
+      setLoading(false)
+      
     }
   };
 
   const login = async (values, onSubmitProps) => {
-    const loggedInResponse = await fetch(`${apiUrl}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
-    });
-    const loggedIn = await loggedInResponse.json();
-    onSubmitProps.resetForm();
-    if (loggedIn) {
-      dispatch(
-        setLogin({
-          user: loggedIn.user,
-          token: loggedIn.token,
-        })
-      );
-      navigate("/home");
-    }
+    
+    setLoading(true)
+
+   try {
+     const loggedInResponse = await fetch(`${apiUrl}/auth/login`, {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify(values),
+     });
+     const loggedIn = await loggedInResponse.json();
+     onSubmitProps.resetForm();
+     if (loggedIn) {
+      setLoading(false)
+       dispatch(
+         setLogin({
+           user: loggedIn.user,
+           token: loggedIn.token,
+         })
+       );
+       
+       navigate("/home");
+     }
+   } catch (error) {
+    setLoading(false)
+    
+   }
   };
 
   const handleFormSubmit = async (values, onSubmitProps) => {
@@ -119,7 +138,15 @@ const Form = () => {
         setFieldValue,
         resetForm,
       }) => (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{textAlign:'center'}} >
+           <ClipLoader
+       
+       loading={loading}
+       
+       size={30}
+       aria-label="Loading Spinner"
+       data-testid="loader"
+     />
           <Box
             display="grid"
             gap="30px"
@@ -262,11 +289,13 @@ const Form = () => {
                 },
               }}
             >
+             
               {isLogin
                 ? "Don't have an account? Sign Up here."
                 : "Already have an account? Login here."}
             </Typography>
           </Box>
+          
         </form>
       )}
     </Formik>
